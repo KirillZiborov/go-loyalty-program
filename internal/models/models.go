@@ -11,17 +11,13 @@ type User struct {
 type Order struct {
 	OrderNumber string
 	Status      string
-	Accrual     *int
+	Accrual     *float32
 	UploadedAt  time.Time
 }
 
-type OrderRequest struct {
-	OrderNumber string `json:"order"`
-}
-
 type OrderResponse struct {
-	OrderNumber string `json:"order_number"`
-	Status      string `json:"status"`
-	Accrual     *int   `json:"accrual,omitempty"`
-	UploadedAt  string `json:"uploaded_at"`
+	OrderNumber string   `json:"order_number"`
+	Status      string   `json:"status"`
+	Accrual     *float32 `json:"accrual,omitempty"`
+	UploadedAt  string   `json:"uploaded_at"`
 }

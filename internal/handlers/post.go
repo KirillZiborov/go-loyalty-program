@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -119,16 +120,15 @@ func SubmitOrder(db *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 
-		log.Println("Authorized userID:", userID)
+		// log.Println("Authorized userID:", userID)
 
-		var orderReq models.OrderRequest
-		if err := json.NewDecoder(r.Body).Decode(&orderReq); err != nil {
-			logging.Sugar.Errorw("Invalid input data", "error", err)
-			http.Error(w, "Invalid input", http.StatusBadRequest)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Invalid request format", http.StatusBadRequest)
 			return
 		}
 
-		orderNumber := strings.TrimSpace(orderReq.OrderNumber)
+		orderNumber := strings.TrimSpace(string(body))
 		if !utils.CheckLuhn(orderNumber) {
 			http.Error(w, "Invalid order number format", http.StatusUnprocessableEntity)
 			return

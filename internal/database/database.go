@@ -33,7 +33,7 @@ func CreateOrdersTable(ctx context.Context, db *pgxpool.Pool) error {
     	order_number TEXT UNIQUE NOT NULL,
     	user_id INT REFERENCES users(id) ON DELETE CASCADE,
     	status TEXT NOT NULL DEFAULT 'NEW',
-		accrual INTEGER DEFAULT NULL,
+		accrual NUMERIC(10, 2) DEFAULT NULL,
     	uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);`
 	_, err := db.Exec(ctx, query)
