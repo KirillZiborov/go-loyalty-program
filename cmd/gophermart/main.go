@@ -60,7 +60,9 @@ func main() {
 	r.Post("/api/user/register", gzip.Middleware(handlers.RegisterUser(db)))
 	r.Post("/api/user/login", gzip.Middleware(handlers.LoginUser(db)))
 	r.Post("/api/user/orders", gzip.Middleware(handlers.SubmitOrder(db)))
+
 	r.Get("/api/user/orders", gzip.Middleware(handlers.GetOrders(db)))
+	r.Get("/api/user/balance", gzip.Middleware(handlers.GetBalance(db)))
 
 	logging.Sugar.Infow(
 		"Starting server at",

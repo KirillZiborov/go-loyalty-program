@@ -57,3 +57,30 @@ func GetOrders(db *pgxpool.Pool) http.HandlerFunc {
 		json.NewEncoder(w).Encode(response)
 	}
 }
+
+func GetBalance(db *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		userID, err := auth.AuthGet(r)
+		if err != nil || userID == 0 {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		balance, err := database.GetUserBalance(r.Context(), db, userID)
+		if err != nil {
+			logging.Sugar.Errorw("Error fetching orders:", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		response := models.BalanceResponse{
+			Current:   balance.Current,
+			Withdrawn: balance.Withdrawn,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	}
+}

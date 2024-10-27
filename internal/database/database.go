@@ -15,7 +15,9 @@ func CreateUsersTable(ctx context.Context, db *pgxpool.Pool) error {
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         login TEXT UNIQUE NOT NULL,
-		password TEXT NOT NULL
+		password TEXT NOT NULL,
+		balance NUMERIC (10, 2) DEFAULT 0;
+		withdrawn NUMERIC (10, 2) DEFAULT 0;
     );
 	CREATE UNIQUE INDEX IF NOT EXISTS idx_login ON users (login);
     `
@@ -119,4 +121,15 @@ func GetOrdersByUserID(ctx context.Context, db *pgxpool.Pool, userID int) ([]mod
 		orders = append(orders, order)
 	}
 	return orders, nil
+}
+
+func GetUserBalance(ctx context.Context, db *pgxpool.Pool, userID int) (*models.Balance, error) {
+	query := `SELECT balance, withdrawn FROM users WHERE id = $1`
+
+	var balance models.Balance
+	err := db.QueryRow(ctx, query, userID).Scan(&balance.Current, &balance.Withdrawn)
+	if err != nil {
+		return nil, err
+	}
+	return &balance, nil
 }

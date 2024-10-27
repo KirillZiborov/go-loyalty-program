@@ -21,3 +21,13 @@ type OrderResponse struct {
 	Accrual     *float32 `json:"accrual,omitempty"`
 	UploadedAt  string   `json:"uploaded_at"`
 }
+
+type Balance struct {
+	Current   float32
+	Withdrawn float32
+}
+
+type BalanceResponse struct {
+	Current   float32 `json:"current"`
+	Withdrawn float32 `json:"withdrawn"`
+}
