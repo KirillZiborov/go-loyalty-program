@@ -16,8 +16,8 @@ func CreateUsersTable(ctx context.Context, db *pgxpool.Pool) error {
         id SERIAL PRIMARY KEY,
         login TEXT UNIQUE NOT NULL,
 		password TEXT NOT NULL,
-		balance NUMERIC (10, 2) DEFAULT 0;
-		withdrawn NUMERIC (10, 2) DEFAULT 0;
+		balance NUMERIC (10, 2) DEFAULT 0,
+		withdrawn NUMERIC (10, 2) DEFAULT 0
     );
 	CREATE UNIQUE INDEX IF NOT EXISTS idx_login ON users (login);
     `
