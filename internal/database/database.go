@@ -45,7 +45,24 @@ func CreateOrdersTable(ctx context.Context, db *pgxpool.Pool) error {
 	return nil
 }
 
+func CreateWithdrawalsTable(ctx context.Context, db *pgxpool.Pool) error {
+	query := `
+    CREATE TABLE IF NOT EXISTS withdrawals (
+		id SERIAL PRIMARY KEY,
+		user_id INT REFERENCES users(id) ON DELETE CASCADE,
+		order_number TEXT NOT NULL,
+		amount NUMERIC(10, 2) NOT NULL,
+		withdrawn_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);`
+	_, err := db.Exec(ctx, query)
+	if err != nil {
+		return fmt.Errorf("unable to create table: %w", err)
+	}
+	return nil
+}
+
 var ErrorDuplicate = errors.New("duplicate entry: URL already exists")
+var ErrorInsufficientFunds = errors.New("insufficient funds")
 
 func CreateUser(ctx context.Context, db *pgxpool.Pool, user *models.User) (int, error) {
 	query := `INSERT INTO users (login, password) 
@@ -132,4 +149,64 @@ func GetUserBalance(ctx context.Context, db *pgxpool.Pool, userID int) (*models.
 		return nil, err
 	}
 	return &balance, nil
+}
+
+func WithdrawBalance(ctx context.Context, db *pgxpool.Pool, userID int, amount float32, orderNumber string) error {
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var currentBalance float32
+	queryBalance := `SELECT balance FROM users WHERE id = $1`
+	err = tx.QueryRow(ctx, queryBalance, userID).Scan(&currentBalance)
+	if err != nil {
+		return err
+	}
+
+	if currentBalance < amount {
+		return ErrorInsufficientFunds
+	}
+
+	queryUpdBalance := `UPDATE users 
+						SET balance = balance - $1, withdrawn = withdrawn + $1
+						WHERE id = $2`
+	_, err = tx.Exec(ctx, queryUpdBalance, amount, userID)
+	if err != nil {
+		return err
+	}
+
+	queryInsWithdraw := `INSERT INTO withdrawals (user_id, order_number, amount) 
+						 VALUES ($1, $2, $3)`
+	_, err = tx.Exec(ctx, queryInsWithdraw, userID, orderNumber, amount)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func GetUserWithdrawals(ctx context.Context, db *pgxpool.Pool, userID int) ([]models.Withdrawal, error) {
+	query := `
+        SELECT order_number, amount, withdrawn_at 
+        FROM withdrawals 
+        WHERE user_id = $1 
+        ORDER BY withdrawn_at DESC
+    `
+	rows, err := db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var withdrawals []models.Withdrawal
+	for rows.Next() {
+		var withdrawal models.Withdrawal
+		err := rows.Scan(&withdrawal.OrderNumber, &withdrawal.Sum, &withdrawal.ProcessedAt)
+		if err != nil {
+			return nil, err
+		}
+		withdrawals = append(withdrawals, withdrawal)
+	}
+	return withdrawals, nil
 }

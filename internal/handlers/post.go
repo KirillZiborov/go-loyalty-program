@@ -163,3 +163,48 @@ func SubmitOrder(db *pgxpool.Pool) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]string{"message": "Order number accepted for processing"})
 	}
 }
+
+func Withdraw(db *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		userID, err := auth.AuthGet(r)
+		if err != nil || userID == 0 {
+			log.Println("Unauthorized userID:", userID, "Error:", err)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// log.Println("Authorized userID:", userID)
+
+		var req models.WithdrawRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid input", http.StatusBadRequest)
+			return
+		}
+
+		if !utils.CheckLuhn(req.OrderNumber) {
+			http.Error(w, "Invalid order number format", http.StatusUnprocessableEntity)
+			return
+		}
+
+		if req.Sum <= 0 {
+			http.Error(w, "Invalid amount", http.StatusBadRequest)
+			return
+		}
+
+		err = database.WithdrawBalance(r.Context(), db, userID, req.Sum, req.OrderNumber)
+		if err != nil {
+			if err == database.ErrorInsufficientFunds {
+				http.Error(w, "Insufficient funds", http.StatusPaymentRequired)
+				return
+			}
+
+			logging.Sugar.Errorw("Error to withdraw", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Withdrawal successful"})
+	}
+}

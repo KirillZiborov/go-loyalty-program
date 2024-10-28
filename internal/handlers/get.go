@@ -84,3 +84,34 @@ func GetBalance(db *pgxpool.Pool) http.HandlerFunc {
 		json.NewEncoder(w).Encode(response)
 	}
 }
+
+func GetWithdrawals(db *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		userID, err := auth.AuthGet(r)
+		if err != nil || userID == 0 {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		withdrawals, err := database.GetUserWithdrawals(r.Context(), db, userID)
+		if err != nil {
+			logging.Sugar.Errorw("Error fetching withdrawals:", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if len(withdrawals) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		sort.Slice(withdrawals, func(i, j int) bool {
+			return withdrawals[i].ProcessedAt.After(withdrawals[j].ProcessedAt)
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(withdrawals)
+	}
+}
