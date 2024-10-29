@@ -95,7 +95,7 @@ func ProccessPendingOrders(cfg *config.Config, ctx context.Context, db *pgxpool.
 					accrual = accrualResponse.Accrual
 				}
 
-				err = database.UpdateOrder(ctx, db, order.OrderNumber, status, accrual)
+				err = database.UpdateOrder(ctx, db, order.OrderNumber, status, accrual, order.UserID)
 				if err != nil {
 					log.Printf("Error updating order status %s: %v", order.OrderNumber, err)
 					continue

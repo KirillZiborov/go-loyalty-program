@@ -235,12 +235,32 @@ func GetPendingOrders(ctx context.Context, db *pgxpool.Pool) ([]models.Order, er
 	return orders, nil
 }
 
-func UpdateOrder(ctx context.Context, db *pgxpool.Pool, orderNumber, status string, accrual float32) error {
-	query := `
-        UPDATE orders
-        SET status = $1, accrual = $2
-		WHERE order_number = $3`
+func UpdateOrder(ctx context.Context, db *pgxpool.Pool, orderNumber, status string, accrual float32, userID int) error {
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
 
-	_, err := db.Exec(ctx, query, status, accrual, orderNumber)
-	return err
+	queryOrders := `UPDATE orders
+					SET status = $1, accrual = $2
+					WHERE order_number = $3`
+
+	_, err = tx.Exec(ctx, queryOrders, status, accrual, orderNumber)
+	if err != nil {
+		return fmt.Errorf("failed to update orders: %w", err)
+	}
+
+	if status == "PROCESSED" && accrual > 0 {
+		queryUpdBalance := `UPDATE users 
+							SET balance = balance + $1
+							WHERE id = $2`
+		_, err = tx.Exec(ctx, queryUpdBalance, accrual, userID)
+		if err != nil {
+			return fmt.Errorf("failed to update user balance: %w", err)
+		}
+	}
+
+	return tx.Commit(ctx)
+
 }

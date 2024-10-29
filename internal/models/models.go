@@ -9,6 +9,7 @@ type User struct {
 }
 
 type Order struct {
+	UserID      int
 	OrderNumber string
 	Status      string
 	Accrual     *float32
