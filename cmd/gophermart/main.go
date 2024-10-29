@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	accrualclient "github.com/KirillZiborov/go-loyalty-program/internal/accrualClient"
 	"github.com/KirillZiborov/go-loyalty-program/internal/config"
 	"github.com/KirillZiborov/go-loyalty-program/internal/database"
 	"github.com/KirillZiborov/go-loyalty-program/internal/gzip"
@@ -57,6 +58,8 @@ func main() {
 	} else {
 		logging.Sugar.Fatalw("No database address")
 	}
+
+	accrualclient.StartAccrual(cfg, context.Background(), db)
 
 	r := chi.NewRouter()
 

@@ -210,3 +210,37 @@ func GetUserWithdrawals(ctx context.Context, db *pgxpool.Pool, userID int) ([]mo
 	}
 	return withdrawals, nil
 }
+
+func GetPendingOrders(ctx context.Context, db *pgxpool.Pool) ([]models.Order, error) {
+	query := `
+        SELECT order_number, status 
+        FROM orders 
+        WHERE status = 'NEW' OR status = 'PROCESSING'`
+
+	rows, err := db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []models.Order
+	for rows.Next() {
+		var order models.Order
+		err := rows.Scan(&order.OrderNumber, &order.Status)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+	return orders, nil
+}
+
+func UpdateOrder(ctx context.Context, db *pgxpool.Pool, orderNumber, status string, accrual float32) error {
+	query := `
+        UPDATE orders
+        SET status = $1, accrual = $2
+		WHERE order_number = $3`
+
+	_, err := db.Exec(ctx, query, status, accrual, orderNumber)
+	return err
+}
