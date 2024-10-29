@@ -214,7 +214,7 @@ func GetUserWithdrawals(ctx context.Context, db *pgxpool.Pool, userID int) ([]mo
 
 func GetPendingOrders(ctx context.Context, db *pgxpool.Pool) ([]models.Order, error) {
 	query := `
-        SELECT order_number, status 
+        SELECT user_id, order_number, status 
         FROM orders 
         WHERE status = 'NEW' OR status = 'PROCESSING'`
 
@@ -227,7 +227,7 @@ func GetPendingOrders(ctx context.Context, db *pgxpool.Pool) ([]models.Order, er
 	var orders []models.Order
 	for rows.Next() {
 		var order models.Order
-		err := rows.Scan(&order.OrderNumber, &order.Status)
+		err := rows.Scan(&order.UserID, &order.OrderNumber, &order.Status)
 		if err != nil {
 			return nil, err
 		}
