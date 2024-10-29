@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/KirillZiborov/go-loyalty-program/internal/models"
 	"github.com/jackc/pgx/v5"
@@ -62,7 +61,7 @@ func CreateWithdrawalsTable(ctx context.Context, db *pgxpool.Pool) error {
 	return nil
 }
 
-var ErrorDuplicate = errors.New("duplicate entry: URL already exists")
+var ErrorDuplicate = errors.New("duplicate entry: user already exists")
 var ErrorInsufficientFunds = errors.New("insufficient funds")
 
 func CreateUser(ctx context.Context, db *pgxpool.Pool, user *models.User) (int, error) {
@@ -243,7 +242,6 @@ func UpdateOrder(ctx context.Context, db *pgxpool.Pool, orderNumber, status stri
 	}
 	defer tx.Rollback(ctx)
 
-	log.Printf("Updating order %s with status: %s, accrual: %.2f", orderNumber, status, accrual)
 	queryOrders := `UPDATE orders
 					SET status = $1, accrual = $2
 					WHERE order_number = $3`
@@ -254,7 +252,6 @@ func UpdateOrder(ctx context.Context, db *pgxpool.Pool, orderNumber, status stri
 	}
 
 	if status == "PROCESSED" && accrual > 0 {
-		log.Printf("Updating balance for user %d with accrual: %.2f", userID, accrual)
 		queryUpdBalance := `UPDATE users 
 							SET balance = balance + $1
 							WHERE id = $2`

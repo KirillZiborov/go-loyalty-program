@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
@@ -53,7 +52,6 @@ func RegisterUser(db *pgxpool.Pool) http.HandlerFunc {
 
 		err = auth.AuthPost(w, r, userID)
 		if err != nil {
-			logging.Sugar.Errorw("Error setting authentication cookie", "error", err)
 			http.Error(w, "Error setting authentication cookie", http.StatusInternalServerError)
 			return
 		}
@@ -95,18 +93,15 @@ func LoginUser(db *pgxpool.Pool) http.HandlerFunc {
 			http.Error(w, "Invalid login or password", http.StatusUnauthorized)
 			return
 		}
-		log.Println("Extracted userID from db:", storedUser.ID)
 
 		err = auth.AuthPost(w, r, storedUser.ID)
 		if err != nil {
-			logging.Sugar.Errorw("Error getting token", "error", err)
 			http.Error(w, "Error getting token", http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "User authentification successful"})
 	}
 }
 
@@ -115,12 +110,9 @@ func SubmitOrder(db *pgxpool.Pool) http.HandlerFunc {
 
 		userID, err := auth.AuthGet(r)
 		if err != nil || userID == 0 {
-			log.Println("Unauthorized userID:", userID, "Error:", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-
-		// log.Println("Authorized userID:", userID)
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -160,7 +152,6 @@ func SubmitOrder(db *pgxpool.Pool) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusAccepted)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Order number accepted for processing"})
 	}
 }
 
@@ -169,12 +160,9 @@ func Withdraw(db *pgxpool.Pool) http.HandlerFunc {
 
 		userID, err := auth.AuthGet(r)
 		if err != nil || userID == 0 {
-			log.Println("Unauthorized userID:", userID, "Error:", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-
-		// log.Println("Authorized userID:", userID)
 
 		var req models.WithdrawRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -205,6 +193,5 @@ func Withdraw(db *pgxpool.Pool) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Withdrawal successful"})
 	}
 }

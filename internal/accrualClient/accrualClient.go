@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -31,7 +30,7 @@ func StartAccrual(cfg *config.Config, ctx context.Context, db *pgxpool.Pool) {
 		case <-ticker.C:
 			ProccessPendingOrders(cfg, ctx, db, 5)
 		case <-ctx.Done():
-			log.Println("Accrual process finished")
+			logging.Sugar.Infow("Accrual process finished")
 			return
 		}
 
@@ -42,6 +41,7 @@ func GetAccrual(cfg *config.Config, orderNumber string) (*AccrualResponse, error
 	url := fmt.Sprintf("%s%s%s", cfg.SysAdress, "/api/orders/", orderNumber)
 	resp, err := http.Get(url)
 	if err != nil {
+		logging.Sugar.Errorw("Get request to accrual service failed", "url", url, "error", err)
 		return nil, fmt.Errorf("get request to acrual failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -61,6 +61,7 @@ func GetAccrual(cfg *config.Config, orderNumber string) (*AccrualResponse, error
 		time.Sleep(retryDuration)
 		return GetAccrual(cfg, orderNumber)
 	default:
+		logging.Sugar.Errorw("Accrual server returned unexpected status", "orderNumber", orderNumber, "status", resp.Status)
 		return nil, fmt.Errorf("accrual server error: %s", resp.Status)
 	}
 }
@@ -68,7 +69,7 @@ func GetAccrual(cfg *config.Config, orderNumber string) (*AccrualResponse, error
 func ProccessPendingOrders(cfg *config.Config, ctx context.Context, db *pgxpool.Pool, workerCount int) {
 	orders, err := database.GetPendingOrders(ctx, db)
 	if err != nil {
-		logging.Sugar.Errorw("error fetching orders", err)
+		logging.Sugar.Errorw("Error fetching pending orders", "error", err)
 		return
 	}
 
@@ -82,11 +83,9 @@ func ProccessPendingOrders(cfg *config.Config, ctx context.Context, db *pgxpool.
 			for order := range jobs {
 				accrualResponse, err := GetAccrual(cfg, order.OrderNumber)
 				if err != nil {
-					log.Printf("Error getting order status %s: %v", order.OrderNumber, err)
+					logging.Sugar.Errorw("Error retrieving accrual for order", "orderNumber", order.OrderNumber, "error", err)
 					continue
 				}
-
-				log.Printf("Accrual response for order %s: %+v", order.OrderNumber, accrualResponse)
 
 				var status string
 				var accrual float32
@@ -97,9 +96,10 @@ func ProccessPendingOrders(cfg *config.Config, ctx context.Context, db *pgxpool.
 
 				err = database.UpdateOrder(ctx, db, order.OrderNumber, status, accrual, order.UserID)
 				if err != nil {
-					log.Printf("Error updating order status %s: %v", order.OrderNumber, err)
+					logging.Sugar.Errorw("Error updating order in database", "orderNumber", order.OrderNumber, "error", err)
 					continue
 				}
+				logging.Sugar.Infow("Successfully updated order", "orderNumber", order.OrderNumber, "status", status, "accrual", accrual)
 			}
 		}()
 	}

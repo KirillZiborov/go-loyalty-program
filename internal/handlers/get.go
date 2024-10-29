@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"sort"
 	"time"
@@ -52,13 +50,6 @@ func GetOrders(db *pgxpool.Pool) http.HandlerFunc {
 				resp.Accrual = *order.Accrual
 			}
 			response = append(response, resp)
-
-			accrual := "nil"
-			if order.Accrual != nil {
-				accrual = fmt.Sprintf("%.2f", *order.Accrual)
-			}
-			log.Printf("Order : %s, Status: %s, Accrual: %s, UploadedAt: %s",
-				resp.OrderNumber, resp.Status, accrual, resp.UploadedAt)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -78,7 +69,7 @@ func GetBalance(db *pgxpool.Pool) http.HandlerFunc {
 
 		balance, err := database.GetUserBalance(r.Context(), db, userID)
 		if err != nil {
-			logging.Sugar.Errorw("Error fetching orders:", err)
+			logging.Sugar.Errorw("Error fetching balance:", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}

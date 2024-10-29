@@ -24,7 +24,7 @@ func main() {
 
 	err := logging.Initialize()
 	if err != nil {
-		logging.Sugar.Fatalw("Internal logging error", err)
+		logging.Sugar.Errorw("Internal logging error", err)
 	}
 
 	cfg := config.NewConfig()

@@ -24,9 +24,8 @@ func GenerateToken(userID int) (string, error) {
 
 	tokenString, err := BuildJWTString(userID)
 	if err != nil {
-		logging.Sugar.Fatalw("Error while generating token", err)
+		return "", err
 	}
-	// log.Println("Generated token:", tokenString)
 
 	return tokenString, nil
 }
@@ -57,13 +56,13 @@ func GetUserID(tokenString string) (int, error) {
 		return 0, fmt.Errorf("invalid token")
 	}
 
-	logging.Sugar.Infow("Token is valid")
 	return claims.UserID, nil
 }
 
 func AuthPost(w http.ResponseWriter, r *http.Request, userID int) error {
 	token, err := GenerateToken(userID)
 	if err != nil {
+		logging.Sugar.Errorw("Error while generating token", "error", err)
 		http.Error(w, "Error while generating token", http.StatusInternalServerError)
 		return err
 	}
@@ -82,13 +81,13 @@ func AuthPost(w http.ResponseWriter, r *http.Request, userID int) error {
 func AuthGet(r *http.Request) (int, error) {
 	cookie, err := r.Cookie("cookie")
 	if err != nil {
-		// log.Println("Cookie not found", err)
+		logging.Sugar.Errorw("Cookie not found", "error", err)
 		return 0, err
 	}
 
 	userID, err := GetUserID(cookie.Value)
 	if err != nil {
-		// log.Println("Error extracting userID", err)
+		logging.Sugar.Errorw("Error extracting userID", "error", err)
 		return 0, err
 	}
 
