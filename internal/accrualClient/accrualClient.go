@@ -86,6 +86,8 @@ func ProccessPendingOrders(cfg *config.Config, ctx context.Context, db *pgxpool.
 					continue
 				}
 
+				log.Printf("Accrual response for order %s: %+v", order.OrderNumber, accrualResponse)
+
 				var status string
 				var accrual float32
 				if accrualResponse != nil {
