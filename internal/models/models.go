@@ -17,7 +17,7 @@ type Order struct {
 }
 
 type OrderResponse struct {
-	OrderNumber string  `json:"order_number"`
+	OrderNumber string  `json:"number"`
 	Status      string  `json:"status"`
 	Accrual     float32 `json:"accrual,omitempty"`
 	UploadedAt  string  `json:"uploaded_at"`
