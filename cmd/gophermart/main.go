@@ -59,7 +59,7 @@ func main() {
 		logging.Sugar.Fatalw("No database address")
 	}
 
-	accrualclient.StartAccrual(cfg, context.Background(), db)
+	go accrualclient.StartAccrual(cfg, context.Background(), db)
 
 	r := chi.NewRouter()
 
