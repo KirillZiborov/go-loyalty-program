@@ -39,7 +39,7 @@ func StartAccrual(cfg *config.Config, ctx context.Context, db *pgxpool.Pool) {
 }
 
 func GetAccrual(cfg *config.Config, orderNumber string) (*AccrualResponse, error) {
-	url := fmt.Sprintf("%s%s%s", cfg.Address, "/api/orders/", orderNumber)
+	url := fmt.Sprintf("%s%s%s", cfg.SysAdress, "/api/orders/", orderNumber)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("get request to acrual failed: %w", err)
