@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"time"
@@ -46,10 +48,17 @@ func GetOrders(db *pgxpool.Pool) http.HandlerFunc {
 				UploadedAt:  order.UploadedAt.Format(time.RFC3339),
 			}
 
-			if order.Status == "PROCESSED" {
-				resp.Accrual = order.Accrual
+			if order.Status == "PROCESSED" && order.Accrual != nil {
+				resp.Accrual = *order.Accrual
 			}
 			response = append(response, resp)
+
+			accrual := "nil"
+			if order.Accrual != nil {
+				accrual = fmt.Sprintf("%.2f", *order.Accrual)
+			}
+			log.Printf("Order : %s, Status: %s, Accrual: %s, UploadedAt: %s",
+				resp.OrderNumber, resp.Status, accrual, resp.UploadedAt)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
